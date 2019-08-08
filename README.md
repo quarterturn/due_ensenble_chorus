@@ -1,3 +1,5 @@
+NOTE this is totally wrong. I need to be stretching or shrinking the sample put into the buffer not offsetting it.
+
 # due_ensenble_chorus
 a string-machine ensemble chorus emulation using an Arduino Due and PedalShield audio interface
 
