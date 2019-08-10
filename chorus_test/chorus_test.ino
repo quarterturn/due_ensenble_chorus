@@ -12,34 +12,34 @@ modulating this delay with a triangular waveform.*/
 #define FOOTSWITCH 7
 #define TOGGLE 2
  
-int16_t in_ADC0, in_ADC1, out_DAC0, out_DAC1;  //variables for 2 ADCs values (ADC0, ADC1)
-int16_t POT0, POT1, POT2; //variables for 3 pots (ADC8, ADC9, ADC10)
+volatile int16_t in_ADC0, in_ADC1, out_DAC0, out_DAC1;  //variables for 2 ADCs values (ADC0, ADC1)
+volatile int16_t POT0, POT1, POT2; //variables for 3 pots (ADC8, ADC9, ADC10)
 
 // buffers
-int16_t delayBuffer1[BUFFER_SIZE] = {0};
-int16_t delayBuffer2[BUFFER_SIZE] = {0};
-int16_t delayBuffer3[BUFFER_SIZE] = {0};
+volatile int16_t delayBuffer1[BUFFER_SIZE] = {0};
+volatile int16_t delayBuffer2[BUFFER_SIZE] = {0};
+volatile int16_t delayBuffer3[BUFFER_SIZE] = {0};
 
 // track the input index
-int16_t inIndex1 = 0;
+volatile int16_t inIndex1 = 0;
 // track the output index
-int16_t outIndex1 = 512; // stick it in the middle so there's room to shift it around
-int16_t outIndex2 = 512;
-int16_t outIndex3 = 512;
+volatile int16_t outIndex1 = 512; // stick it in the middle so there's room to shift it around
+volatile int16_t outIndex2 = 512;
+volatile int16_t outIndex3 = 512;
 // track lfo index
-int16_t lfoIndex1 = 0;
-int16_t lfoIndex2 = 245;
-int16_t lfoIndex3 = 490;
+volatile int16_t lfoIndex1 = 0;
+volatile int16_t lfoIndex2 = 245;
+volatile int16_t lfoIndex3 = 490;
 // used to slow down reading the LFO wavetable
-uint16_t interruptCount = 0;
+volatile int16_t interruptCount = 0;
 // the offset value read from the wavetable
-int16_t offset1 = 0;
-int16_t offset2 = 0;
-int16_t offset3 = 0;
+volatile int16_t offset1 = 0;
+volatile int16_t offset2 = 0;
+volatile int16_t offset3 = 0;
 // the resulting input index plus the offset
-int16_t offsetIndex1 = 0;
-int16_t offsetIndex2 = 0;
-int16_t offsetIndex3 = 0;
+volatile int16_t offsetIndex1 = 0;
+volatile int16_t offsetIndex2 = 0;
+volatile int16_t offsetIndex3 = 0;
 
  
 void setup()
@@ -65,7 +65,9 @@ void setup()
   //ADC Configuration
   ADC->ADC_MR |= 0x80;   // DAC in free running mode.
   ADC->ADC_CR=2;         // Starts ADC conversion.
-  ADC->ADC_CHER=0x1CC0;  // Enable ADC channels 0,1,8,9 and 10  
+  ADC->ADC_CHDR=0xFFFFFFFF; // disable all channels
+  ADC->ADC_CHER=0x1CC0;  // Enable ADC channels 0,1,8,9 and 10
+
  
   //DAC Configuration
   analogWrite(DAC0,0);  // Enables DAC0
@@ -74,7 +76,25 @@ void setup()
   //pedalSHIELD pin configuration
   pinMode(LED, OUTPUT);  
   pinMode(FOOTSWITCH, INPUT);     
-  pinMode(TOGGLE, INPUT);  
+  pinMode(TOGGLE, INPUT);
+
+  // begin test
+//  Serial.begin(115200);
+//  #define TIME_INTERRUPT
+//  #ifdef TIME_INTERRUPT
+//  uint32_t now = micros();
+//  for(int i = 0; i < 10000; i++)
+//    TC4_Handler();
+//  now = micros() - now;
+//  Serial.print("time = ");
+//  // Round the result up
+//  Serial.print((now+5000)/10000);
+//  Serial.println(" us");
+//  while(1);
+//  #endif
+// 
+//  NVIC_EnableIRQ(TC4_IRQn);
+  // end test
 }
  
 void loop()
@@ -82,10 +102,10 @@ void loop()
   //Read the ADCs
   while((ADC->ADC_ISR & 0x1CC0)!=0x1CC0);// wait for ADC 0, 1, 8, 9, 10 conversion complete.
   in_ADC0=ADC->ADC_CDR[7];               // read data from ADC0
-  //in_ADC1=ADC->ADC_CDR[6];               // read data from ADC1  
-  //POT0=ADC->ADC_CDR[10];                 // read data from ADC8        
-  //POT1=ADC->ADC_CDR[11];                 // read data from ADC9   
-  //POT2=ADC->ADC_CDR[12];                 // read data from ADC10     
+  in_ADC1=ADC->ADC_CDR[6];               // read data from ADC1  
+  POT0=ADC->ADC_CDR[10];                 // read data from ADC8        
+  POT1=ADC->ADC_CDR[11];                 // read data from ADC9   
+  POT2=ADC->ADC_CDR[12];                 // read data from ADC10     
 }
  
 //Interrupt at 44.1KHz rate (every 22.6us)
@@ -101,6 +121,10 @@ void TC4_Handler()
   if (inIndex1 > (BUFFER_SIZE - 1))
     inIndex1 = 0;
 
+  // store the new ADC reading
+  delayBuffer1[inIndex1] = in_ADC0;
+  delayBuffer2[inIndex1] = in_ADC0;
+  delayBuffer3[inIndex1] = in_ADC0;
 
   // update the output index
   outIndex1++;
@@ -108,7 +132,7 @@ void TC4_Handler()
   if (outIndex1 > (BUFFER_SIZE - 1))
     outIndex1 = 0;
 
-   // update the output index
+  // update the output index
   outIndex2++;
   // wrap around if at end of buffer
   if (outIndex2 > (BUFFER_SIZE - 1))
@@ -120,8 +144,8 @@ void TC4_Handler()
   if (outIndex3 > (BUFFER_SIZE - 1))
     outIndex3 = 0;
 
-  // slow down the wavetable by only getting the next value every ten interrupts
-  if (interruptCount > 200)
+  // slow down the wavetable by only getting the next value every 200 interrupts
+  if (interruptCount > 100)
   {  
     lfoIndex1++;
     // wrap around if at end of wavetable
@@ -173,17 +197,16 @@ void TC4_Handler()
   if (offsetIndex3 > (BUFFER_SIZE - 1))
     offsetIndex3 = offsetIndex3 - BUFFER_SIZE;
 
-  // store the new ADC reading
-  delayBuffer1[inIndex1] = in_ADC0;
-  delayBuffer2[inIndex1] = in_ADC0;
-  delayBuffer3[inIndex1] = in_ADC0;
-
   // output the delayed data to the DAC
   out_DAC0 = 290 + (delayBuffer1[offsetIndex1] >> 2) + (delayBuffer2[offsetIndex2] >> 2) + (delayBuffer3[offsetIndex3] >> 2);
+  
+  // test
+  //out_DAC0 = 290 + (delayBuffer1[outIndex1] >> 2) + (delayBuffer2[outIndex2] >> 2) + (delayBuffer3[outIndex3] >> 2);
   //out_DAC0 = delayBuffer1[offsetIndex1];
+  //out_DAC0 = delayBuffer1[inIndex1];
   
   //Add volume control based in POT2
-  //out_DAC0=map(out_DAC0,0,4095,1,POT2);
+  out_DAC0=map(out_DAC0,0,4095,1,POT2);
  
   //Write the DACs
   dacc_set_channel_selection(DACC_INTERFACE, 0);       //select DAC channel 0
