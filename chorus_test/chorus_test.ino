@@ -196,6 +196,14 @@ void TC4_Handler()
     offsetIndex2 = offsetIndex2 - BUFFER_SIZE;
   if (offsetIndex3 > (BUFFER_SIZE - 1))
     offsetIndex3 = offsetIndex3 - BUFFER_SIZE;
+    
+  // wrap the index if it goes past the buffer the other way
+  if (offsetIndex1 < 0)
+    offsetIndex1 = BUFFER_SIZE + offsetIndex1;
+  if (offsetIndex2 < 0)
+    offsetIndex2 = BUFFER_SIZE + offsetIndex2;
+  if (offsetIndex3 < 0)
+    offsetIndex3 = BUFFER_SIZE + offsetIndex3;
 
   // output the delayed data to the DAC
   out_DAC0 = 290 + (delayBuffer1[offsetIndex1] >> 2) + (delayBuffer2[offsetIndex2] >> 2) + (delayBuffer3[offsetIndex3] >> 2);
