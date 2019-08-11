@@ -7,7 +7,7 @@ modulating this delay with a triangular waveform.*/
 
 #import "lfo.h"
 
-#define BUFFER_SIZE 1024 // 1024 samples like a BBD
+#define BUFFER_SIZE 2048
 #define LED 3
 #define FOOTSWITCH 7
 #define TOGGLE 2
@@ -23,9 +23,9 @@ volatile int16_t delayBuffer3[BUFFER_SIZE] = {0};
 // track the input index
 volatile int16_t inIndex1 = 0;
 // track the output index
-volatile int16_t outIndex1 = 512; // stick it in the middle so there's room to shift it around
-volatile int16_t outIndex2 = 512;
-volatile int16_t outIndex3 = 512;
+volatile int16_t outIndex1 = 1023; // stick it in the middle so there's room to shift it around
+volatile int16_t outIndex2 = 1023;
+volatile int16_t outIndex3 = 1023;
 // track lfo index
 volatile int16_t lfoIndex1 = 0;
 volatile int16_t lfoIndex2 = 245;
@@ -205,13 +205,10 @@ void TC4_Handler()
   if (offsetIndex3 < 0)
     offsetIndex3 = BUFFER_SIZE + offsetIndex3;
 
-  // output the delayed data to the DAC
-  out_DAC0 = 290 + (delayBuffer1[offsetIndex1] >> 2) + (delayBuffer2[offsetIndex2] >> 2) + (delayBuffer3[offsetIndex3] >> 2);
-  
-  // test
-  //out_DAC0 = 290 + (delayBuffer1[outIndex1] >> 2) + (delayBuffer2[outIndex2] >> 2) + (delayBuffer3[outIndex3] >> 2);
-  //out_DAC0 = delayBuffer1[offsetIndex1];
-  //out_DAC0 = delayBuffer1[inIndex1];
+  // output the delayed + current data to the DAC
+  // divide by 4 since we're adding four copies
+  //out_DAC0 = (in_ADC0 >> 6) + (delayBuffer1[offsetIndex1] >> 2) + (delayBuffer2[offsetIndex2] >> 2) + (delayBuffer3[offsetIndex3] >> 2);
+  out_DAC0 = 1023 + (delayBuffer1[offsetIndex1] >> 2) + (delayBuffer2[offsetIndex2] >> 2) + (delayBuffer3[offsetIndex3] >> 2);
   
   //Add volume control based in POT2
   out_DAC0=map(out_DAC0,0,4095,1,POT2);
