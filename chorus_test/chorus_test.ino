@@ -211,7 +211,7 @@ void TC4_Handler()
   out_DAC0 = 1023 + (delayBuffer1[offsetIndex1] >> 2) + (delayBuffer2[offsetIndex2] >> 2) + (delayBuffer3[offsetIndex3] >> 2);
   
   //Add volume control based in POT2
-  out_DAC0=map(out_DAC0,0,4095,1,POT2);
+  //out_DAC0=map(out_DAC0,0,4095,1,POT2);
  
   //Write the DACs
   dacc_set_channel_selection(DACC_INTERFACE, 0);       //select DAC channel 0
