@@ -1,9 +1,6 @@
-// Licensed under a Creative Commons Attribution 3.0 Unported License.
-// Based on rcarduino.blogspot.com previous work.
-// www.electrosmash.com/pedalshield
- 
-/*chorus_vibrato.ino creates a chorus guitar effect by delaying the signal and
-modulating this delay with a triangular waveform.*/
+// a string ensemble chorus effect like Roland RS-202 or Lowrey "Symphonic Strings"
+// intended for the ElectroSmash Pedalshield and Arduino Due
+// but you could adapt the code to pretty much any fast enough microcontroller with enough RAM
 
 #import "lfo.h"
 
@@ -40,6 +37,8 @@ volatile int16_t offset3 = 0;
 volatile int16_t offsetIndex1 = 0;
 volatile int16_t offsetIndex2 = 0;
 volatile int16_t offsetIndex3 = 0;
+// wavetable LFO speed
+volatile uint16_t interruptsPerLFO = 100;
 
  
 void setup()
@@ -105,7 +104,9 @@ void loop()
   in_ADC1=ADC->ADC_CDR[6];               // read data from ADC1  
   POT0=ADC->ADC_CDR[10];                 // read data from ADC8        
   POT1=ADC->ADC_CDR[11];                 // read data from ADC9   
-  POT2=ADC->ADC_CDR[12];                 // read data from ADC10     
+  POT2=ADC->ADC_CDR[12];                 // read data from ADC10 
+
+  interruptsPerLFO=map(POT0,0,4095,25,200);
 }
  
 //Interrupt at 44.1KHz rate (every 22.6us)
@@ -145,7 +146,7 @@ void TC4_Handler()
     outIndex3 = 0;
 
   // slow down the wavetable by only getting the next value every 200 interrupts
-  if (interruptCount > 100)
+  if (interruptCount > interruptsPerLFO)
   {  
     lfoIndex1++;
     // wrap around if at end of wavetable
@@ -176,9 +177,6 @@ void TC4_Handler()
     interruptCount++;
   }
  
-  //Adjust Delay Depth based in pot0 position.
-  //POT0=map(POT0>>2,0,1024,1,25); //25 empirically chosen
-
   // get the delay from the wavetable
   offset1 = pgm_read_word_near(LFO_TABLE + lfoIndex1);
   offset2 = pgm_read_word_near(LFO_TABLE + lfoIndex2);
@@ -211,7 +209,7 @@ void TC4_Handler()
   out_DAC0 = 1023 + (delayBuffer1[offsetIndex1] >> 2) + (delayBuffer2[offsetIndex2] >> 2) + (delayBuffer3[offsetIndex3] >> 2);
   
   //Add volume control based in POT2
-  //out_DAC0=map(out_DAC0,0,4095,1,POT2);
+  out_DAC0=map(out_DAC0,0,4095,1,POT2);
  
   //Write the DACs
   dacc_set_channel_selection(DACC_INTERFACE, 0);       //select DAC channel 0
