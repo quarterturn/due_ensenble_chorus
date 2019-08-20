@@ -18,6 +18,9 @@ volatile int16_t POT0, POT1, POT2; //variables for 3 pots (ADC8, ADC9, ADC10)
 volatile int16_t delayBuffer1[BUFFER_SIZE] = {0};
 volatile int16_t delayBuffer2[BUFFER_SIZE] = {0};
 volatile int16_t delayBuffer3[BUFFER_SIZE] = {0};
+volatile int16_t delayBuffer1a[BUFFER_SIZE] = {0};
+volatile int16_t delayBuffer2a[BUFFER_SIZE] = {0};
+volatile int16_t delayBuffer3a[BUFFER_SIZE] = {0};
 
 // track the input index
 volatile int16_t inIndex1 = 0;
@@ -128,6 +131,9 @@ void TC4_Handler()
   delayBuffer1[inIndex1] = in_ADC0;
   delayBuffer2[inIndex1] = in_ADC0;
   delayBuffer3[inIndex1] = in_ADC0;
+  delayBuffer1a[inIndex1] = in_ADC1;
+  delayBuffer2a[inIndex1] = in_ADC1;
+  delayBuffer3a[inIndex1] = in_ADC1;
 
   // update the output index
   outIndex1++;
@@ -207,14 +213,19 @@ void TC4_Handler()
 
   // output the delayed + current data to the DAC
   // divide by 4 since we're adding four copies
+  //out_DAC0 = (in_ADC0 >> 6) + (delayBuffer1[offsetIndex1] >> 2) + (delayBuffer2[offsetIndex2] >> 2) + (delayBuffer3[offsetIndex3] >> 2);
   out_DAC0 = 1023 + (delayBuffer1[offsetIndex1] >> 2) + (delayBuffer2[offsetIndex2] >> 2) + (delayBuffer3[offsetIndex3] >> 2);
+  out_DAC1 = 1023 + (delayBuffer1a[offsetIndex1] >> 2) + (delayBuffer2a[offsetIndex2] >> 2) + (delayBuffer3a[offsetIndex3] >> 2);
   
   //Add volume control based in POT2
   out_DAC0=map(out_DAC0,0,4095,1,POT2);
+  out_DAC1=map(out_DAC0,0,4095,1,POT2);
  
   //Write the DACs
   dacc_set_channel_selection(DACC_INTERFACE, 0);       //select DAC channel 0
   dacc_write_conversion_data(DACC_INTERFACE, out_DAC0);//write on DAC
+  dacc_set_channel_selection(DACC_INTERFACE, 1);       //select DAC channel 1
+  dacc_write_conversion_data(DACC_INTERFACE, 0);       //write on DAC
 
 
 }
