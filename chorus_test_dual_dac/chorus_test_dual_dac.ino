@@ -17,13 +17,9 @@ volatile int16_t POT0, POT1, POT2; //variables for 3 pots (ADC8, ADC9, ADC10)
 // buffers
 volatile int16_t delayBuffer1[BUFFER_SIZE] = {0};
 volatile int16_t delayBuffer2[BUFFER_SIZE] = {0};
-volatile int16_t delayBuffer3[BUFFER_SIZE] = {0};
-volatile int16_t delayBuffer1a[BUFFER_SIZE] = {0};
-volatile int16_t delayBuffer2a[BUFFER_SIZE] = {0};
-volatile int16_t delayBuffer3a[BUFFER_SIZE] = {0};
 
 // track the input index
-volatile int16_t inIndex1 = 0;
+volatile int16_t inIndex = 0;
 // track the output index
 volatile int16_t outIndex1 = 1023; // stick it in the middle so there's room to shift it around
 volatile int16_t outIndex2 = 1023;
@@ -122,18 +118,14 @@ void TC4_Handler()
  
 
   // update the input index
-  inIndex1++;
+  inIndex++;
   // wrap around if at end of buffer
-  if (inIndex1 > (BUFFER_SIZE - 1))
-    inIndex1 = 0;
+  if (inIndex > (BUFFER_SIZE - 1))
+    inIndex = 0;
 
   // store the new ADC reading
-  delayBuffer1[inIndex1] = in_ADC0;
-  delayBuffer2[inIndex1] = in_ADC0;
-  delayBuffer3[inIndex1] = in_ADC0;
-  delayBuffer1a[inIndex1] = in_ADC1;
-  delayBuffer2a[inIndex1] = in_ADC1;
-  delayBuffer3a[inIndex1] = in_ADC1;
+  delayBuffer1[inIndex] = in_ADC0;
+  delayBuffer2[inIndex] = in_ADC1;
 
   // update the output index
   outIndex1++;
@@ -214,8 +206,8 @@ void TC4_Handler()
   // output the delayed + current data to the DAC
   // divide by 4 since we're adding four copies
   //out_DAC0 = (in_ADC0 >> 6) + (delayBuffer1[offsetIndex1] >> 2) + (delayBuffer2[offsetIndex2] >> 2) + (delayBuffer3[offsetIndex3] >> 2);
-  out_DAC0 = 1023 + (delayBuffer1[offsetIndex1] >> 2) + (delayBuffer2[offsetIndex2] >> 2) + (delayBuffer3[offsetIndex3] >> 2);
-  out_DAC1 = 1023 + (delayBuffer1a[offsetIndex1] >> 2) + (delayBuffer2a[offsetIndex2] >> 2) + (delayBuffer3a[offsetIndex3] >> 2);
+  out_DAC0 = 1023 + (delayBuffer1[offsetIndex1] >> 2) + (delayBuffer1[offsetIndex2] >> 2) + (delayBuffer1[offsetIndex3] >> 2);
+  out_DAC1 = 1023 + (delayBuffer2[offsetIndex1] >> 2) + (delayBuffer2[offsetIndex2] >> 2) + (delayBuffer2[offsetIndex3] >> 2);
   
   //Add volume control based in POT2
   out_DAC0=map(out_DAC0,0,4095,1,POT2);
